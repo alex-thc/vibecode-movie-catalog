@@ -1,0 +1,58 @@
+# This section is for self-managed DAPI server
+server:
+  cleartext: true
+  hostport: localhost:8085
+  shutdowntimeout: 10s
+  reflect: true
+  descriptors: protos.pb
+interceptors:
+  # CORS section is only for self-managed DAPI server
+  # - name: CORS
+  #   config:
+  #     allowedorigins: ["*"]
+  - name: Auth
+    config:
+      jwksurl: https://www.googleapis.com/oauth2/v3/certs
+  - name: MongoDB
+    config:
+      url: mongodb://localhost:27017 # Add your Atlas connection string here
+services:
+  a.example.MovieService:
+    database: sample_mflix
+    collection: movies
+    endpoints:
+      List: # unary
+        # auth: claims.email_verified == true && "Authorization" in headers
+        unauthenticated: true # No auth required for this endpoint
+        paginatedfind:
+          filter: '{}'
+          cursor: req.cursor
+        options: 'options.FindOptions {Limit: 10, Sort: {"title": 1}}'
+      GetMovieWithComments: # unary
+        # auth: claims.email_verified == true && "Authorization" in headers
+        unauthenticated: true
+        aggregate:
+         pipeline: '[{"$match": {"_id": ObjectID(req.id)}},{"$lookup": {"from": "comments", "localField": "_id", "foreignField": "movie_id", "as": "comments"}}]'
+  a.example.UserService:
+    database: app1
+    collection: users
+    endpoints:
+      GetUser: # unary
+        auth: claims.email_verified == true && claims.email == req.email && "Authorization" in headers # Users must be authenticated and can only get their own user
+        findone:
+          filter: '{"email": req.email}'
+      CreateUser: # unary
+        auth: claims.email_verified == true && claims.email == req.email && "Authorization" in headers # Users must be authenticated and can only create their own user
+        insertone:
+          document: 'req'
+      AddFavoriteMovie: # unary
+        auth: claims.email_verified == true && claims.email == req.email && "Authorization" in headers # Users must be authenticated and can only add their own favorite movies
+        updateone: # Note that this does an upsert, so if the user doesn't exist, they will be created
+          filter: '{"email": req.email}'
+          update: '{"$addToSet": {"favorite_movie_ids": req.movie_id}}'
+        options: 'options.UpdateOptions {Upsert: true}'
+      DeleteFavoriteMovie: # unary
+        auth: claims.email_verified == true && claims.email == req.email && "Authorization" in headers # Users can only delete their own favorite movies
+        updateone:
+          filter: '{"email": req.email}'
+          update: '{"$pull": {"favorite_movie_ids": req.movie_id}}'
