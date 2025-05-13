@@ -30,10 +30,10 @@ A React-based web application for browsing movies, viewing comments, and managin
    buf build -o protos.pb
    ```
    This will generate ./dapi_files/protos.pb file
-   
+
 3. Register at https://dapi-sandbox.adiom.io/ and create a new service using the config file and the compiled protos file.
 
-## Fronted setup
+## Frontend setup
 
 1. Clone the repository
 2. Install dependencies:
