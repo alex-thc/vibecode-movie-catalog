@@ -1,0 +1,168 @@
+Given the following protobuf definition for a data backend API server running at grpc://localhost:8085, generate a multi-user movie catalog React web app that supports the following functionality:
+- user authentication via Google Social Sign-in (the returned jwt will be used for backend auth)
+- view movie catalog with posters (paginated)
+- see comments for a movie
+- user can add movies to their favorites
+- user can remove movies from their favorites 
+- user can view their favorite movies
+
+Use Connect RPC to communicate with the gRPC backend. 
+syntax = "proto3";
+
+package a.example;
+
+option go_package = "github.com/adiom-data/dapi/gen";
+
+import "google/protobuf/timestamp.proto";
+
+// MovieService is a service for managing movies and their comments.
+service MovieService {
+    // List available movies
+    rpc List(ListRequest) returns (ListResp);
+    // Get a movie with all comments
+    rpc GetMovieWithComments(GetMovieWithCommentsRequest) returns (GetMovieWithCommentsResp);
+}
+
+message ListRequest {
+    string cursor = 1;
+}
+
+message ListResp {
+    repeated Movie data = 1;
+    Movie movie = 2;
+    string next_cursor = 3;
+}
+
+message GetMovieWithCommentsRequest {
+    string id = 1;
+}
+
+message GetMovieWithCommentsResp {
+    repeated MovieWithComments data = 1;
+    Movie MovieWithComments = 2;
+}
+
+message Comment {
+    string _id = 1;
+    string text = 2;
+    string name = 3;
+    string email = 4;
+    google.protobuf.Timestamp date = 5;
+    string movie_id = 6;
+}
+
+message Movie {
+    string _id = 1;
+    string title = 2;
+    string plot = 3;
+    int32 runtime = 5;
+    google.protobuf.Timestamp released = 6;
+    string fullplot = 7;
+    string poster = 8; //poster URL
+}
+
+message MovieWithComments {
+    string _id = 1;
+    string title = 2;
+    string plot = 3;
+    repeated Comment comments = 4;
+}
+
+// UserService is a service for managing users and their favorite movies.
+service UserService {
+    // Get a user by email
+    rpc GetUser(GetUserRequest) returns (User);
+    // Create a user
+    rpc CreateUser(User) returns (CreateUserResp);
+    // Add a movie to user's favorites
+    rpc AddFavoriteMovie(AddFavoriteMovieRequest) returns (AddFavoriteMovieResp);
+    // Delete a movie from user's favorites
+    rpc DeleteFavoriteMovie(DeleteFavoriteMovieRequest) returns (DeleteFavoriteMovieResp);
+}
+
+message User {
+    string name = 1;
+    string email = 2;
+    repeated string favorite_movie_ids = 3;
+}
+
+message GetUserRequest {
+    string email = 1;
+}
+
+message CreateUserResp {
+}
+
+message AddFavoriteMovieRequest {
+    string email = 1;
+    string movie_id = 2;
+}
+
+message AddFavoriteMovieResp {
+}
+
+message DeleteFavoriteMovieRequest {
+    string email = 1;
+    string movie_id = 2;
+}
+
+message DeleteFavoriteMovieResp {
+}
+
+Use the following example for generating code from the protobuf definition:
+
+$ npm install --save-dev @bufbuild/buf @bufbuild/protoc-gen-es
+$ npm install @connectrpc/connect @connectrpc/connect-web @bufbuild/protobuf
+
+# buf.yaml
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE
+
+# buf.gen.yaml defines a local generation template.
+# For details, see https://buf.build/docs/configuration/v2/buf-gen-yaml
+version: v2
+plugins:
+  # This will invoke protoc-gen-es and write output to src/gen
+  - local: protoc-gen-es
+    out: src/gen
+    # Also generate any imported dependencies
+    include_imports: true
+    # Add more plugin options here
+    opt: target=ts
+
+
+Use the following example for connecting to the RPC client:
+// use-client.ts
+import { useMemo } from "react";
+import { type DescService } from "@bufbuild/protobuf";
+import { createConnectTransport } from "@connectrpc/connect-web";
+import { createClient, type Client } from "@connectrpc/connect";
+
+// This transport is going to be used throughout the app
+const transport = createConnectTransport({
+  baseUrl: "https://grpc-server.com:8080",
+  interceptors: [
+    (next) => async (req) => {
+      req.header.set(
+        "authorization",
+        "Bearer <JWT token>"
+      );
+      return await next(req);
+    },
+  ],
+});
+
+/**
+* Get a promise client for the given service.
+*/
+export function useClient<T extends DescService>(service: T): Client<T> {
+  // We memoize the client, so that we only create one instance per service.
+  return useMemo(() => createClient(service, transport), [service]);
+}
