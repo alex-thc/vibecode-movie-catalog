@@ -4,6 +4,8 @@ A React-based web application for browsing movies, viewing comments, and managin
 
 See the tutorial [here](https://dev.to/adkomyagin/vibe-code-like-a-pro-build-an-mvp-web-app-with-mongodb-atlas-in-1-hour-using-cursor-4i2k) for more information.
 
+![Vibecoded movie catalog app](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ud49nwaej175clqae6l0.png)
+
 ## Features
 
 - User authentication via Google Social Sign-in
@@ -21,6 +23,7 @@ See the tutorial [here](https://dev.to/adkomyagin/vibe-code-like-a-pro-build-an-
 - Google OAuth credentials
    - If you don't have one already, you will need to create a new web OAuth 2.0 client in GCP Console. You can follow [these instructions](https://developers.google.com/identity/protocols/oauth2). You will also need to add "http://localhost:5173" as *both* an Authorized JavaScript origin and an Authorized redirect URI.
 - Atlas cluster with preloaded [mflix sample dataset](https://www.mongodb.com/docs/atlas/sample-data/sample-mflix/)
+   - Whitelist IP 35.247.121.225 for Data API service to be able to connect to the cluster
 
 ## Backend setup
 
