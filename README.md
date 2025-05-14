@@ -2,6 +2,8 @@
 
 A React-based web application for browsing movies, viewing comments, and managing favorite movies. The app uses gRPC for backend communication and Google OAuth for authentication.
 
+See the tutorial [here](https://dev.to/adkomyagin/vibe-code-like-a-pro-build-an-mvp-web-app-with-mongodb-atlas-in-1-hour-using-cursor-4i2k) for more information.
+
 ## Features
 
 - User authentication via Google Social Sign-in
